@@ -67,11 +67,15 @@
                 <div class="bg-gray-800/50 p-5 rounded-lg border border-gray-700 space-y-6 transition-colors duration-300">
                     <div>
                         <label class="block text-sm text-gray-400 uppercase tracking-wider mb-2 transition-colors duration-300">Default Currency</label>
-                        <select class="w-full bg-gray-900 border border-gray-700 text-gray-200 rounded-lg p-2.5 focus:outline-none focus:border-emerald-500 appearance-none transition-colors duration-300">
-                            <option value="INR">₹ INR (Indian Rupee)</option>
-                            <option value="USD">$ USD (US Dollar)</option>
-                            <option value="EUR">€ EUR (Euro)</option>
-                        </select>
+                        <form method="POST" class="space-y-4">
+                            {% csrf_token %}
+                            <select name="currency" class="w-full bg-gray-900 border border-gray-700 text-gray-200 rounded-lg p-2.5 focus:outline-none focus:border-emerald-500 appearance-none transition-colors duration-300">
+                                <option value="INR" {% if currency == 'INR' %}selected{% endif %}>₹ INR (Indian Rupee)</option>
+                                <option value="USD" {% if currency == 'USD' %}selected{% endif %}>$ USD (US Dollar)</option>
+                                <option value="EUR" {% if currency == 'EUR' %}selected{% endif %}>€ EUR (Euro)</option>
+                            </select>
+                            <button type="submit" class="bg-emerald-500 hover:bg-emerald-400 text-gray-950 px-4 py-2 rounded-lg text-sm font-semibold transition">Save Changes</button>
+                        </form>
                     </div>
 
                     <div>
