@@ -1,0 +1,43 @@
+\<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Account - Plutus-AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles to automatically make Django's built-in form fit our dark mode */
+        input { width: 100%; background-color: #1f2937; border: 1px solid #374151; border-radius: 0.5rem; padding: 0.75rem 1rem; color: #f3f4f6; margin-top: 0.25rem; margin-bottom: 1rem; }
+        input:focus { outline: none; border-color: #10b981; }
+        label { display: block; font-size: 0.875rem; color: #9ca3af; }
+        .helptext { font-size: 0.75rem; color: #6b7280; margin-bottom: 1rem; display: block; line-height: 1.2; }
+        ul.errorlist { color: #ef4444; font-size: 0.875rem; margin-bottom: 1rem; list-style-type: disc; padding-left: 1.5rem; }
+    </style>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen font-sans flex items-center justify-center py-12">
+    
+    <div class="bg-gray-900 border border-gray-800 p-8 rounded-xl shadow-lg w-full max-w-md">
+        <div class="flex items-center gap-3 mb-2 justify-center">
+            <div class="w-10 h-10 rounded bg-emerald-500 flex items-center justify-center font-bold text-gray-900 text-xl">P</div>
+            <h1 class="text-2xl font-semibold tracking-wide">Plutus-AI</h1>
+        </div>
+        
+        <h2 class="text-lg text-center mb-6 text-gray-400">Initialize a new secure portfolio</h2>
+
+        <form method="post" class="flex flex-col">
+            {% csrf_token %}
+            
+            {{ form }}
+            
+            <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-3 rounded-lg transition mt-6">
+                Create Account
+            </button>
+        </form>
+
+        <p class="text-center text-sm text-gray-400 mt-6">
+            Already have a terminal? <a href="{% url 'login' %}" class="text-emerald-400 hover:text-emerald-300">Sign in here</a>.
+        </p>
+    </div>
+
+</body>
+</html>

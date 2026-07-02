@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plutus-AI Terminal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Master Light Mode Overrides */
+        .light-mode, .light-mode body { background-color: #f9fafb !important; color: #111827 !important; }
+        .light-mode .bg-gray-900, .light-mode .bg-gray-950, .light-mode .bg-gray-900\/80, .light-mode .bg-gray-900\/50 { background-color: #ffffff !important; border-color: #e5e7eb !important; border-width: 1px !important; }
+        .light-mode .bg-gray-800, .light-mode .bg-gray-800\/50, .light-mode .bg-gray-800\/80 { background-color: #f3f4f6 !important; border-color: #d1d5db !important; color: #111827 !important; }
+        .light-mode .text-gray-400, .light-mode .text-gray-500 { color: #4b5563 !important; }
+        .light-mode .text-gray-300 { color: #374151 !important; }
+        .light-mode .text-gray-200 { color: #111827 !important; }
+        .light-mode .text-gray-100 { color: #000000 !important; }
+        .light-mode input[type="radio"] { background-color: #ffffff !important; border-color: #9ca3af !important; }
+        .light-mode select, .light-mode input[type="text"] { background-color: #ffffff !important; color: #111827 !important; border-color: #d1d5db !important; }
+        .light-mode .border-t.border-gray-800, .light-mode .border-b.border-gray-800 { border-color: #e5e7eb !important; }
+        .light-mode .bg-gray-700 { background-color: #e5e7eb !important; color: #374151 !important; border-color: #d1d5db !important; }
+        .light-mode .bg-red-950\/20 { background-color: #fef2f2 !important; border-color: #fecaca !important; }
+        .light-mode .bg-gray-800.rounded-tl-none { background-color: #ffffff !important; box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important; }
+    </style>
+    <style>
+        /* Custom sleek scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #374151; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #4b5563; }
+        /* Typing bounce animation */
+        .typing-dot { animation: typingBounce 1.4s infinite ease-in-out both; }
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes typingBounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
+    </style>
+    <script>
+        // Execute immediately to prevent screen flashing
+        function applyTheme() {
+            const theme = localStorage.getItem('plutus_theme') || 'dark';
+            if (theme === 'light' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: light)').matches)) {
+                document.documentElement.classList.add('light-mode');
+            } else {
+                document.documentElement.classList.remove('light-mode');
+            }
+        }
+        applyTheme();
+    </script>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen font-sans flex flex-col relative overflow-hidden">
+    
+    <div class="absolute top-[-10%] left-[-10%] w-96 h-96 bg-emerald-900/20 rounded-full blur-[100px] pointer-events-none"></div>
+
+    <header class="backdrop-blur-md bg-gray-900/80 border-b border-gray-800 p-4 flex justify-between items-center shadow-lg z-10 sticky top-0">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center font-bold text-gray-900 shadow-md">P</div>
+            <h1 class="text-xl font-semibold tracking-wide flex items-center gap-2">
+                Plutus-AI 
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-900/50 text-emerald-400 border border-emerald-800">PRO</span>
+            </h1>
+        </div>
+        <div class="text-sm text-gray-400 flex items-center gap-4">
+            <span class="hidden md:flex items-center gap-2 text-xs text-gray-500 mr-2">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Server Online
+            </span>
+            <a href="{% url 'settings' %}" class="hover:text-emerald-400 transition-colors">Settings</a>
+            <form method="post" action="{% url 'logout' %}" class="inline m-0 p-0">
+                {% csrf_token %}
+                <button type="submit" class="bg-gray-800 hover:bg-gray-700 text-gray-200 px-4 py-1.5 rounded-lg transition-all shadow-sm border border-gray-700">Sign Out</button>
+            </form>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-5xl w-full mx-auto p-4 md:p-6 flex flex-col gap-6 h-[calc(100vh-73px)] relative z-10">
+        
+        <div id="chat-window" class="flex-1 bg-gray-900/50 backdrop-blur-sm rounded-2xl border border-gray-800 p-4 md:p-6 overflow-y-auto flex flex-col gap-6 shadow-inner scroll-smooth">
+            
+            <div class="flex gap-4">
+                <div class="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex-shrink-0 flex items-center justify-center text-gray-900 font-bold shadow-md">P</div>
+                <div class="flex flex-col gap-3 max-w-[85%]">
+                    <div class="bg-gray-800 rounded-2xl rounded-tl-none px-5 py-3 text-sm leading-relaxed text-gray-200 shadow-sm border border-gray-700">
+                        Authentication successful. Welcome to your secure terminal, <span class="font-semibold text-emerald-400">{{ user.username }}</span>. How can I assist with your portfolio analysis today?
+                    </div>
+                    
+                    <div class="flex flex-wrap gap-2 mt-1">
+                        <button onclick="document.getElementById('message-input').value='Analyze NVDA performance over the last month'; document.getElementById('chat-form').dispatchEvent(new Event('submit'));" class="text-xs bg-gray-800 hover:bg-emerald-900/50 hover:border-emerald-700 hover:text-emerald-300 border border-gray-700 text-gray-400 px-3 py-1.5 rounded-full transition-all">
+                            📈 Analyze NVDA
+                        </button>
+                        <button onclick="document.getElementById('message-input').value='How is the Nifty 50 doing today?'; document.getElementById('chat-form').dispatchEvent(new Event('submit'));" class="text-xs bg-gray-800 hover:bg-emerald-900/50 hover:border-emerald-700 hover:text-emerald-300 border border-gray-700 text-gray-400 px-3 py-1.5 rounded-full transition-all">
+                            📊 Check Nifty 50
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="typing-indicator" class="hidden gap-4 transition-opacity duration-300 opacity-0">
+                <div class="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex-shrink-0 flex items-center justify-center text-gray-900 font-bold shadow-md">P</div>
+                <div class="bg-gray-800 rounded-2xl rounded-tl-none px-5 py-4 flex items-center gap-1 shadow-sm border border-gray-700 w-16">
+                    <div class="w-2 h-2 bg-gray-400 rounded-full typing-dot"></div>
+                    <div class="w-2 h-2 bg-gray-400 rounded-full typing-dot"></div>
+                    <div class="w-2 h-2 bg-gray-400 rounded-full typing-dot"></div>
+                </div>
+            </div>
+
+        </div>
+
+        <form id="chat-form" class="relative flex items-center bg-gray-800/80 backdrop-blur-md border border-gray-700 rounded-xl shadow-lg focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500 transition-all">
+            
+            <input type="text" id="message-input" class="w-full bg-transparent border-none py-4 pl-6 pr-16 text-sm text-gray-100 placeholder-gray-500 focus:outline-none" placeholder="Type a stock ticker (AAPL, NVDA, TSLA) or ask a financial question..." autocomplete="off">
+            
+            <button type="submit" id="send-btn" class="absolute right-2 bg-emerald-600 hover:bg-emerald-500 text-white p-2.5 rounded-lg transition-colors shadow-md group disabled:opacity-50 disabled:cursor-not-allowed">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
+                </svg>
+            </button>
+        </form>
+    </main>
+
+    <script>
+        const chatForm = document.getElementById('chat-form');
+        const messageInput = document.getElementById('message-input');
+        const chatWindow = document.getElementById('chat-window');
+        const typingIndicator = document.getElementById('typing-indicator');
+        const sendBtn = document.getElementById('send-btn');
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        function scrollToBottom() {
+            chatWindow.scrollTo({ top: chatWindow.scrollHeight, behavior: 'smooth' });
+        }
+
+        function toggleTypingIndicator(show) {
+            if (show) {
+                typingIndicator.classList.remove('hidden');
+                setTimeout(() => typingIndicator.classList.remove('opacity-0'), 50);
+                chatWindow.appendChild(typingIndicator); // Move to bottom
+                scrollToBottom();
+            } else {
+                typingIndicator.classList.add('opacity-0');
+                setTimeout(() => typingIndicator.classList.add('hidden'), 300);
+            }
+        }
+
+        function appendMessage(role, content, chartData = null) {
+            const wrapper = document.createElement('div');
+            wrapper.className = role === 'user' ? 'flex gap-4 flex-row-reverse animate-[fadeIn_0.3s_ease-out]' : 'flex gap-4 animate-[fadeIn_0.3s_ease-out]';
+            
+            const avatar = document.createElement('div');
+            avatar.className = role === 'user' 
+                ? 'w-8 h-8 rounded-full bg-gray-700 flex-shrink-0 flex items-center justify-center text-white text-xs font-medium shadow-md border border-gray-600'
+                : 'w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex-shrink-0 flex items-center justify-center text-gray-900 font-bold shadow-md';
+            avatar.textContent = role === 'user' ? 'U' : 'P';
+
+            const contentContainer = document.createElement('div');
+            contentContainer.className = role === 'user'
+                ? 'bg-emerald-600 rounded-2xl rounded-tr-none px-5 py-3 text-sm text-white max-w-[85%] shadow-md border border-emerald-500'
+                : 'bg-gray-800 rounded-2xl rounded-tl-none px-5 py-3 text-sm leading-relaxed text-gray-200 max-w-[85%] shadow-sm border border-gray-700 whitespace-pre-wrap w-full';
+            
+            // Handle raw HTML formatting for markdown-style bolding
+            let formattedContent = content.replace(/\*\*(.*?)\*\*/g, '<span class="font-bold text-white">$1</span>');
+            contentContainer.innerHTML = formattedContent;
+
+            if (chartData) {
+                const canvasWrapper = document.createElement('div');
+                canvasWrapper.className = 'mt-4 w-full h-72 bg-gray-900/80 p-3 rounded-xl border border-gray-700 shadow-inner';
+                const canvas = document.createElement('canvas');
+                canvasWrapper.appendChild(canvas);
+                contentContainer.appendChild(canvasWrapper);
+
+                new Chart(canvas, {
+                    type: 'line',
+                    data: {
+                        labels: chartData.labels,
+                        datasets: [{
+                            label: `${chartData.ticker} Price (Last 30 Days)`,
+                            data: chartData.prices,
+                            borderColor: '#34d399', // Emerald 400
+                            backgroundColor: 'rgba(52, 211, 153, 0.15)',
+                            borderWidth: 2.5,
+                            fill: true,
+                            pointRadius: 0,
+                            pointHoverRadius: 6,
+                            tension: 0.3 // Adds slight curve to line
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: { intersect: false, mode: 'index' },
+                        plugins: {
+                            legend: { labels: { color: '#d1d5db', font: { family: 'sans-serif' } } },
+                            tooltip: { backgroundColor: 'rgba(17, 24, 39, 0.9)', titleColor: '#10b981', bodyColor: '#fff', padding: 10, borderColor: '#374151', borderWidth: 1 }
+                        },
+                        scales: {
+                            x: { ticks: { color: '#9ca3af', maxTicksLimit: 6 }, grid: { color: '#374151', display: false } },
+                            y: { ticks: { color: '#9ca3af' }, grid: { color: '#374151', borderDash: [5, 5] } }
+                        }
+                    }
+                });
+            }
+
+            wrapper.appendChild(avatar);
+            wrapper.appendChild(contentContainer);
+            chatWindow.insertBefore(wrapper, typingIndicator); // Insert before typing indicator
+            scrollToBottom();
+        }
+
+        chatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const message = messageInput.value.trim();
+            if (!message) return;
+
+            // UI State change
+            sendBtn.disabled = true;
+            appendMessage('user', message);
+            messageInput.value = '';
+            toggleTypingIndicator(true);
+
+            const csrftoken = getCookie('csrftoken');
+
+            try {
+                const response = await fetch('/api/assistant/chat/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrftoken
+                    },
+                    body: JSON.stringify({ message: message })
+                });
+
+                const data = await response.json();
+                toggleTypingIndicator(false);
+                
+                if (response.ok) {
+                    appendMessage('assistant', data.response || "No response received.", data.chart_data);
+                } else {
+                    appendMessage('assistant', `⚠️ Error: ${data.error || 'Server connection failed.'}`);
+                }
+            } catch (err) {
+                toggleTypingIndicator(false);
+                appendMessage('assistant', '⚠️ Network error. Check your connection to the Django backend.');
+            } finally {
+                sendBtn.disabled = false;
+                messageInput.focus();
+            }
+        });
+
+        // Add a simple fade-in keyframe for dynamically injected elements
+        const style = document.createElement('style');
+        style.innerHTML = `@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }`;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>

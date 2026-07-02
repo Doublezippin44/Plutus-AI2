@@ -1,0 +1,20 @@
+:root{--bg:#0f1724;--card:#0b1320;--accent:#2dd4bf;--muted:#9ca3af;--panel:#071126}
+*{box-sizing:border-box;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial}
+body{margin:0;background:linear-gradient(180deg,#071124 0%,#04101a 100%);color:#e6eef6}
+.topbar{display:flex;justify-content:space-between;align-items:center;padding:14px 24px;background:linear-gradient(90deg,rgba(255,255,255,0.02),transparent);border-bottom:1px solid rgba(255,255,255,0.03)}
+.brand{font-weight:700;color:var(--accent)}
+.container{display:flex;gap:20px;padding:24px}
+.sidebar{width:280px;background:rgba(255,255,255,0.02);padding:16px;border-radius:8px}
+.chat-panel{flex:1;display:flex;flex-direction:column;max-height:80vh}
+.messages{flex:1;overflow:auto;padding:16px;background:rgba(255,255,255,0.01);border-radius:8px;margin-bottom:12px}
+.message{padding:12px;border-radius:8px;margin-bottom:10px;max-width:78%}
+.message.user{background:linear-gradient(90deg,rgba(45,212,191,0.12),rgba(45,212,191,0.06));margin-left:auto}
+.message.assistant{background:rgba(255,255,255,0.03)}
+.chat-form{display:flex;gap:8px}
+.chat-form input{flex:1;padding:12px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit}
+.btn{background:var(--accent);color:#021018;padding:10px 14px;border-radius:8px;border:none;cursor:pointer}
+.auth-page{display:grid;place-items:center;height:100vh}
+.auth-card{width:380px;padding:28px;border-radius:12px;background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent)}
+.auth-card input{width:100%;padding:10px;margin:8px 0;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit}
+.error{background:#4c1515;padding:8px;border-radius:6px;margin-bottom:8px;color:#ffd6d6}
+.small{padding:6px 8px}

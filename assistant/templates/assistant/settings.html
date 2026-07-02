@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Settings - Plutus-AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Master Light Mode Overrides mapped to the .light-mode class */
+        .light-mode, .light-mode body { background-color: #f9fafb !important; color: #111827 !important; }
+        .light-mode .bg-gray-900, .light-mode .bg-gray-950, .light-mode .bg-gray-900\/80, .light-mode .bg-gray-900\/50 { background-color: #ffffff !important; border-color: #e5e7eb !important; border-width: 1px !important; }
+        .light-mode .bg-gray-800, .light-mode .bg-gray-800\/50, .light-mode .bg-gray-800\/80 { background-color: #f3f4f6 !important; border-color: #d1d5db !important; color: #111827 !important; }
+        .light-mode .text-gray-400, .light-mode .text-gray-500 { color: #4b5563 !important; }
+        .light-mode .text-gray-300 { color: #374151 !important; }
+        .light-mode .text-gray-200 { color: #111827 !important; }
+        .light-mode .text-gray-100 { color: #000000 !important; }
+        .light-mode input[type="radio"] { background-color: #ffffff !important; border-color: #9ca3af !important; }
+        .light-mode select, .light-mode input[type="text"] { background-color: #ffffff !important; color: #111827 !important; border-color: #d1d5db !important; }
+        .light-mode .border-t.border-gray-800, .light-mode .border-b.border-gray-800 { border-color: #e5e7eb !important; }
+        .light-mode .bg-gray-700 { background-color: #e5e7eb !important; color: #374151 !important; border-color: #d1d5db !important; }
+        .light-mode .bg-red-950\/20 { background-color: #fef2f2 !important; border-color: #fecaca !important; }
+        .light-mode .bg-gray-800.rounded-tl-none { background-color: #ffffff !important; box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important; }
+    </style>
+    <script>
+        // Check theme immediately to prevent screen flashing
+        function applyTheme() {
+            const theme = localStorage.getItem('plutus_theme') || 'dark';
+            if (theme === 'light' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: light)').matches)) {
+                document.documentElement.classList.add('light-mode');
+            } else {
+                document.documentElement.classList.remove('light-mode');
+            }
+        }
+        applyTheme();
+    </script>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen font-sans flex flex-col items-center py-12 px-4 transition-colors duration-300">
+    
+    <div class="bg-gray-900 border border-gray-800 p-8 rounded-xl shadow-lg w-full max-w-2xl transition-colors duration-300">
+        <div class="flex justify-between items-center mb-8 border-b border-gray-800 pb-4 transition-colors duration-300">
+            <h1 class="text-2xl font-semibold tracking-wide flex items-center gap-3">
+                <div class="w-8 h-8 rounded bg-emerald-500 flex items-center justify-center font-bold text-gray-900 text-sm">P</div>
+                Settings
+            </h1>
+            <a href="{% url 'home' %}" class="text-gray-400 hover:text-emerald-400 text-sm transition">← Back to Terminal</a>
+        </div>
+        
+        <div class="space-y-8">
+            <div>
+                <h2 class="text-lg font-medium text-gray-200 mb-4 transition-colors duration-300">Account Profile</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-gray-800/50 p-4 rounded-lg border border-gray-700 transition-colors duration-300">
+                        <h3 class="text-sm text-gray-400 uppercase tracking-wider mb-1 transition-colors duration-300">Authenticated User</h3>
+                        <p class="text-lg text-gray-100 font-mono transition-colors duration-300">{{ user.username }}</p>
+                    </div>
+                    <div class="bg-gray-800/50 p-4 rounded-lg border border-gray-700 transition-colors duration-300">
+                        <h3 class="text-sm text-gray-400 uppercase tracking-wider mb-1 transition-colors duration-300">Account Status</h3>
+                        <p class="text-emerald-400 flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse"></span> Active
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <h2 class="text-lg font-medium text-gray-200 mb-4 transition-colors duration-300">Preferences</h2>
+                <div class="bg-gray-800/50 p-5 rounded-lg border border-gray-700 space-y-6 transition-colors duration-300">
+                    <div>
+                        <label class="block text-sm text-gray-400 uppercase tracking-wider mb-2 transition-colors duration-300">Default Currency</label>
+                        <select class="w-full bg-gray-900 border border-gray-700 text-gray-200 rounded-lg p-2.5 focus:outline-none focus:border-emerald-500 appearance-none transition-colors duration-300">
+                            <option value="INR">₹ INR (Indian Rupee)</option>
+                            <option value="USD">$ USD (US Dollar)</option>
+                            <option value="EUR">€ EUR (Euro)</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm text-gray-400 uppercase tracking-wider mb-2 transition-colors duration-300">Appearance</label>
+                        <div class="flex gap-6 mt-2">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="radio" name="theme" value="dark" class="w-4 h-4 text-emerald-500 focus:ring-emerald-500 bg-gray-900 border-gray-700 transition-colors duration-300">
+                                <span class="text-gray-300 transition-colors duration-300">Dark</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="radio" name="theme" value="light" class="w-4 h-4 text-emerald-500 focus:ring-emerald-500 bg-gray-900 border-gray-700 transition-colors duration-300">
+                                <span class="text-gray-300 transition-colors duration-300">Light</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="radio" name="theme" value="system" class="w-4 h-4 text-emerald-500 focus:ring-emerald-500 bg-gray-900 border-gray-700 transition-colors duration-300">
+                                <span class="text-gray-300 transition-colors duration-300">System</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <h2 class="text-lg font-medium text-gray-200 mb-4 transition-colors duration-300">About Plutus-AI</h2>
+                <div class="bg-gray-800/50 p-5 rounded-lg border border-gray-700 flex justify-between items-center transition-colors duration-300">
+                    <div>
+                        <p class="text-gray-200 font-semibold text-lg transition-colors duration-300">Version 1.0.0</p>
+                        <p class="text-sm text-gray-500 mt-1 transition-colors duration-300">Build 127 • Made by Pranav</p>
+                    </div>
+                    <button id="update-btn" class="bg-gray-700 hover:bg-gray-600 text-gray-200 px-4 py-2 rounded-lg text-sm transition border border-gray-600 flex items-center justify-center min-w-[150px]">
+                        Check for Updates
+                    </button>
+                </div>
+            </div>
+
+            <div class="border-t border-gray-800 pt-8 mt-8 transition-colors duration-300">
+                <h2 class="text-lg font-medium text-red-400 mb-4">Danger Zone</h2>
+                
+                <div class="flex justify-between items-center bg-red-950/20 p-5 rounded-lg border border-red-900/30 mb-4 transition-colors duration-300">
+                    <div>
+                        <p class="text-gray-300 font-medium transition-colors duration-300">Delete Account</p>
+                        <p class="text-sm text-gray-500 mt-1 transition-colors duration-300">Permanently remove your data and portfolio.</p>
+                    </div>
+                    <form method="post" action="#" onsubmit="return confirm('Are you sure you want to permanently delete your account? This action cannot be undone.');">
+                        {% csrf_token %}
+                        <button type="submit" class="bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-lg text-sm transition font-semibold shadow-md">
+                            Delete Account
+                        </button>
+                    </form>
+                </div>
+                
+                <div class="flex justify-end">
+                    <form method="post" action="{% url 'logout' %}">
+                        {% csrf_token %}
+                        <button type="submit" class="text-gray-400 hover:text-gray-200 border border-gray-700 hover:bg-gray-800 px-6 py-2 rounded-lg transition text-sm">
+                            Disconnect (Sign Out)
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // Fake update button animation
+        const updateBtn = document.getElementById('update-btn');
+        updateBtn.addEventListener('click', () => {
+            updateBtn.innerHTML = `<svg class="animate-spin -ml-1 mr-2 h-4 w-4 inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Checking...`;
+            updateBtn.disabled = true;
+            updateBtn.classList.add('opacity-75', 'cursor-not-allowed');
+
+            setTimeout(() => {
+                updateBtn.innerHTML = `System is up to date`;
+                updateBtn.classList.remove('bg-gray-700', 'hover:bg-gray-600', 'opacity-75', 'cursor-not-allowed', 'text-gray-200', 'border-gray-600');
+                updateBtn.classList.add('bg-emerald-100', 'text-emerald-800', 'border-emerald-300', 'font-medium');
+            }, 2500);
+        });
+
+        // Theme switching logic
+        const themeRadios = document.querySelectorAll('input[name="theme"]');
+        const currentTheme = localStorage.getItem('plutus_theme') || 'dark';
+
+        // Set correct radio button on load
+        themeRadios.forEach(radio => {
+            if (radio.value === currentTheme) radio.checked = true;
+
+            radio.addEventListener('change', (e) => {
+                const selected = e.target.value;
+                localStorage.setItem('plutus_theme', selected);
+                
+                if (selected === 'light' || (selected === 'system' && window.matchMedia('(prefers-color-scheme: light)').matches)) {
+                    document.documentElement.classList.add('light-mode');
+                } else {
+                    document.documentElement.classList.remove('light-mode');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

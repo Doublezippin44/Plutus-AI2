@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plutus-AI Interface</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen font-sans flex flex-col">
+    <header class="bg-gray-900 border-b border-gray-800 p-4 flex justify-between items-center shadow-md">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded bg-emerald-500 flex items-center justify-center font-bold text-gray-900">P</div>
+            <h1 class="text-xl font-semibold tracking-wide">Plutus-AI <span class="text-xs text-emerald-400 align-top">PRO</span></h1>
+        </div>
+        <div class="text-sm text-gray-400 flex items-center gap-4">
+            <span>Secure Terminal</span>
+            <button class="bg-gray-800 hover:bg-gray-700 text-gray-200 px-4 py-1.5 rounded transition">Sign Out</button>
+        </div>
+    </header>
+    <main class="flex-1 max-w-5xl w-full mx-auto p-6 flex flex-col gap-6 h-[calc(100vh-73px)]">
+        <div id="chat-window" class="flex-1 bg-gray-900 rounded-xl border border-gray-800 p-6 overflow-y-auto flex flex-col gap-4 shadow-inner">
+            <div class="flex gap-4">
+                <div class="w-8 h-8 rounded-full bg-emerald-500 flex-shrink-0 flex items-center justify-center text-gray-900 font-bold">P</div>
+                <div class="bg-gray-800 rounded-2xl rounded-tl-none px-5 py-3 text-sm leading-relaxed text-gray-200 max-w-[80%] shadow-sm">
+                    System initialized. Secure connection established. How can I assist with your portfolio today?
+                </div>
+            </div>
+        </div>
+        <form id="chat-form" class="relative flex items-center bg-gray-900 border border-gray-700 rounded-lg shadow-lg focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500 transition-all">
+            <input 
+                type="text" 
+                id="message-input" 
+                class="w-full bg-transparent border-none py-4 pl-6 pr-16 text-sm text-gray-100 placeholder-gray-500 focus:outline-none" 
+                placeholder="Analyze AAPL financials, query Nifty 50..." 
+                autocomplete="off"
+            >
+            <button type="submit" class="absolute right-2 bg-emerald-600 hover:bg-emerald-500 text-white p-2 rounded-md transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
+                </svg>
+            </button>
+        </form>
+    </main>
+    <script>
+        const chatForm = document.getElementById('chat-form');
+        const messageInput = document.getElementById('message-input');
+        const chatWindow = document.getElementById('chat-window');
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        function appendMessage(role, content, chartData = null) {
+            const wrapper = document.createElement('div');
+            wrapper.className = role === 'user' ? 'flex gap-4 flex-row-reverse' : 'flex gap-4';
+            
+            const avatar = document.createElement('div');
+            avatar.className = role === 'user' 
+                ? 'w-8 h-8 rounded-full bg-gray-600 flex-shrink-0 flex items-center justify-center text-white text-xs'
+                : 'w-8 h-8 rounded-full bg-emerald-500 flex-shrink-0 flex items-center justify-center text-gray-900 font-bold';
+            avatar.textContent = role === 'user' ? 'U' : 'P';
+
+            const contentContainer = document.createElement('div');
+            contentContainer.className = role === 'user'
+                ? 'bg-emerald-600 rounded-2xl rounded-tr-none px-5 py-3 text-sm text-white max-w-[80%] shadow-sm'
+                : 'bg-gray-800 rounded-2xl rounded-tl-none px-5 py-3 text-sm leading-relaxed text-gray-200 max-w-[80%] shadow-sm whitespace-pre-wrap w-full';
+            
+            const textNode = document.createElement('div');
+            textNode.textContent = content;
+            contentContainer.appendChild(textNode);
+
+            if (chartData) {
+                const canvasWrapper = document.createElement('div');
+                canvasWrapper.className = 'mt-4 w-full h-64 bg-gray-900 p-2 rounded-lg';
+                const canvas = document.createElement('canvas');
+                canvasWrapper.appendChild(canvas);
+                contentContainer.appendChild(canvasWrapper);
+
+                new Chart(canvas, {
+                    type: 'line',
+                    data: {
+                        labels: chartData.labels,
+                        datasets: [{
+                            label: chartData.ticker + ' Price',
+                            data: chartData.prices,
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            borderWidth: 2,
+                            fill: true,
+                            pointRadius: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { labels: { color: '#e5e7eb' } }
+                        },
+                        scales: {
+                            x: { ticks: { color: '#9ca3af' }, grid: { color: '#374151' } },
+                            y: { ticks: { color: '#9ca3af' }, grid: { color: '#374151' } }
+                        }
+                    }
+                });
+            }
+
+            wrapper.appendChild(avatar);
+            wrapper.appendChild(contentContainer);
+            chatWindow.appendChild(wrapper);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        }
+
+        chatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const message = messageInput.value.trim();
+            if (!message) return;
+
+            appendMessage('user', message);
+            messageInput.value = '';
+
+            const csrftoken = getCookie('csrftoken');
+
+            try {
+                const response = await fetch('/api/assistant/chat/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrftoken
+                    },
+                    body: JSON.stringify({ message: message })
+                });
+
+                const textData = await response.text();
+                try {
+                    const data = JSON.parse(textData);
+                    if (response.ok) {
+                        appendMessage('assistant', data.response || "No response received.", data.chart_data);
+                    } else {
+                        appendMessage('assistant', `Error: ${data.error || 'Server error'}`);
+                    }
+                } catch (parseErr) {
+                    appendMessage('assistant', 'Server returned an invalid format. Check Django console for crash details.');
+                }
+            } catch (err) {
+                appendMessage('assistant', 'Network error. Check connection to Django backend.');
+            }
+        });
+    </script>
+</body>
+</html>
