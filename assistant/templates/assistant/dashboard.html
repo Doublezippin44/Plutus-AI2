@@ -6,6 +6,15 @@
     <title>Plutus-AI Interface</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Target the container that holds your chat messages */
+        .chat-container {
+            height: calc(100vh - 150px); /* Adjust the 150px based on your header and input box height */
+            overflow-y: auto;            /* This enables the vertical scrollbar */
+            display: flex;
+            flex-direction: column;
+        }
+    </style>
 </head>
 <body class="bg-gray-950 text-gray-100 min-h-screen font-sans flex flex-col">
     <header class="bg-gray-900 border-b border-gray-800 p-4 flex justify-between items-center shadow-md">
@@ -19,7 +28,7 @@
         </div>
     </header>
     <main class="flex-1 max-w-5xl w-full mx-auto p-6 flex flex-col gap-6 h-[calc(100vh-73px)]">
-        <div id="chat-window" class="flex-1 bg-gray-900 rounded-xl border border-gray-800 p-6 overflow-y-auto flex flex-col gap-4 shadow-inner">
+        <div id="chat-window" class="chat-container flex-1 bg-gray-900 rounded-xl border border-gray-800 p-6 overflow-y-auto flex flex-col gap-4 shadow-inner">
             <div class="flex gap-4">
                 <div class="w-8 h-8 rounded-full bg-emerald-500 flex-shrink-0 flex items-center justify-center text-gray-900 font-bold">P</div>
                 <div class="bg-gray-800 rounded-2xl rounded-tl-none px-5 py-3 text-sm leading-relaxed text-gray-200 max-w-[80%] shadow-sm">
