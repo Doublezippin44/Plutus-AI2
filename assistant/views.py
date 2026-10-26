@@ -7,7 +7,7 @@ from django.urls import reverse_lazy
 from django.views.generic import CreateView
 from django.shortcuts import render, redirect
 from .models import ChatMessage, UserProfile # Ensure UserProfile is imported
-from .openai_client import ask_openai
+from .openai_client import AIProviderError, ask_openai
 import yfinance as yf
 
 class FinancialAdvisorView(APIView):
@@ -52,7 +52,13 @@ class FinancialAdvisorView(APIView):
                 pass
 
         combined_prompt = user_message + injected_context
-        ai_response = ask_openai(combined_prompt, user_currency=user_currency)
+        try:
+            ai_response = ask_openai(combined_prompt, user_currency=user_currency)
+        except AIProviderError as error:
+            return Response(
+                {"error": str(error), "code": error.code},
+                status=error.status_code,
+            )
 
         ChatMessage.objects.create(user=request.user, role="user", content=user_message)
         ChatMessage.objects.create(user=request.user, role="assistant", content=ai_response)
