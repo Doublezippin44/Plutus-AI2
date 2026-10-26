@@ -38,7 +38,7 @@ provider account, pick a model shown in the Groq console.
 ## Check the fix locally
 
 ```sh
-python manage.py test assistant
+SECRET_KEY=test-only-django-key python manage.py test assistant
 ```
 
 With no `GROQ_API_KEY`, the endpoint returns a clean 503 and
