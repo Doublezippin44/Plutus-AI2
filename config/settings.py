@@ -8,8 +8,16 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 load_dotenv(BASE_DIR / "config" / ".env")
 
-SECRET_KEY = os.getenv("SECRET_KEY", 'django-insecure-default-key-for-dev')
-DEBUG = os.getenv("DEBUG", "False") == "True"
+DEBUG = os.getenv("DEBUG", "False").strip().lower() in {"true", "1", "yes"}
+SECRET_KEY = os.getenv("SECRET_KEY", "").strip()
+if not SECRET_KEY:
+    if DEBUG:
+        SECRET_KEY = "django-insecure-local-development-only"
+    else:
+        from django.core.exceptions import ImproperlyConfigured
+        raise ImproperlyConfigured(
+            "SECRET_KEY must be set in the server environment for production."
+        )
 
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "127.0.0.1,localhost,plutus-ai.onrender.com").split(",")
 
