@@ -2,9 +2,11 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-load_dotenv()
-
 BASE_DIR = Path(__file__).resolve().parent.parent
+# Real deployment secrets come from environment variables; local .env is optional.
+# load_dotenv does not overwrite existing environment variables.
+load_dotenv(BASE_DIR / ".env")
+load_dotenv(BASE_DIR / "config" / ".env")
 
 SECRET_KEY = os.getenv("SECRET_KEY", 'django-insecure-default-key-for-dev')
 DEBUG = os.getenv("DEBUG", "False") == "True"
