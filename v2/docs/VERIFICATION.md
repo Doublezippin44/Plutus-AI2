@@ -14,3 +14,12 @@ Date: 2026-11-16. Only observed results belong here.
 - Hosted PostgreSQL migration, Supabase authentication, checkout, broker sandbox and provider integrations are unverified.
 
 Deployment and remote CI evidence will be appended after actual results are available.
+
+## Observed hosted foundation checks
+
+- GitHub draft PR: https://github.com/Doublezippin44/Plutus-AI2/pull/2
+- Commit `6c3f1fad87ab4270597b2a05c77e6541635d6e1e`: both GitHub Actions jobs (`api`, `web`) completed successfully in run https://github.com/Doublezippin44/Plutus-AI2/actions/runs/43758003677.
+- Backend Vercel preview `dpl_GMifbxWvXHmC3hFPgEj4m6q3GAME` reached READY. GET https://plutus-ai-v2-dw4nj7cbw-pirate-apollo.vercel.app/api/v1/health returned HTTP 200 with `database_ready:false`, `environment:production`, `public_launch_ready:false`.
+- Frontend preview `dpl_GPxMPepCBUAMh1GLbfhKoKPJhEBg` reached READY. A further deployment applies the configured API proxy origin.
+- Initial Alembic migration successfully applied to a temporary SQLite database. This is not proof of a PostgreSQL migration.
+- Source publication used the connected GitHub API because shell Git push lacked a credential. No credentials were copied into files.

@@ -1,59 +1,1070 @@
-'use client';
-import { useEffect, useState, FormEvent } from 'react';
-import { ArrowDownLeft, ArrowUpRight, ArrowRight, Activity, Bookmark, Check, ChevronRight, CircleHelp, Command, Download, FlaskConical, Globe2, LayoutDashboard, LogOut, Plus, Search, Settings2, ShieldCheck, Sparkles, Wallet, X, Zap } from 'lucide-react';
-type Kind='paper'|'manual';
-type Holding={symbol:string;quantity:number;cost:string;average_cost:string};
-type Order={id:string;symbol:string;side:string;quantity:number;price:string;fee:string;realized:string;created:string};
-type Account={cash:string|null;cost_basis:string;realized:string;market_value:null;positions:Holding[];orders:Order[]};
-type Caps={auth:boolean;environment:string;paper_fee_bps:number};
-const empty:Account={cash:null,cost_basis:'0.00',realized:'0.00',market_value:null,positions:[],orders:[]};
-const nav=[{label:'Overview',icon:LayoutDashboard},{label:'Portfolio',icon:Wallet},{label:'Watchlist',icon:Bookmark},{label:'Paper trading',icon:Activity},{label:'Research lab',icon:FlaskConical},{label:'Connections',icon:Globe2}];
-const inr=(v:string|null)=>v===null?'—':new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:2}).format(Number(v));
-async function api<T>(path:string,body?:unknown,method?:string,key?:string):Promise<T>{
- const res=await fetch('/api/v1'+path,{method:method||(body?'POST':'GET'),credentials:'same-origin',headers:{...(body?{'Content-Type':'application/json'}:{}),...(key?{'Idempotency-Key':key}:{})},body:body?JSON.stringify(body):undefined});
- if(!res.ok){let message='Service unavailable. Check the connection status.';try{const data=await res.json();message=typeof data.detail==='string'?data.detail: 'Check your entries and try again.'}catch{}throw new Error(message)}
- return res.json();
+"use client";
+import { useEffect, useState, FormEvent } from "react";
+import {
+  ArrowDownLeft,
+  ArrowUpRight,
+  ArrowRight,
+  Activity,
+  Bookmark,
+  Check,
+  ChevronRight,
+  CircleHelp,
+  Command,
+  Download,
+  FlaskConical,
+  Globe2,
+  LayoutDashboard,
+  LogOut,
+  Plus,
+  Search,
+  Settings2,
+  ShieldCheck,
+  Sparkles,
+  Wallet,
+  X,
+  Zap,
+} from "lucide-react";
+type Kind = "paper" | "manual";
+type Holding = {
+  symbol: string;
+  quantity: number;
+  cost: string;
+  average_cost: string;
+};
+type Order = {
+  id: string;
+  symbol: string;
+  side: string;
+  quantity: number;
+  price: string;
+  fee: string;
+  realized: string;
+  created: string;
+};
+type Account = {
+  cash: string | null;
+  cost_basis: string;
+  realized: string;
+  market_value: null;
+  positions: Holding[];
+  orders: Order[];
+};
+type Caps = { auth: boolean; environment: string; paper_fee_bps: number };
+const empty: Account = {
+  cash: null,
+  cost_basis: "0.00",
+  realized: "0.00",
+  market_value: null,
+  positions: [],
+  orders: [],
+};
+const nav = [
+  { label: "Overview", icon: LayoutDashboard },
+  { label: "Portfolio", icon: Wallet },
+  { label: "Watchlist", icon: Bookmark },
+  { label: "Paper trading", icon: Activity },
+  { label: "Research lab", icon: FlaskConical },
+  { label: "Connections", icon: Globe2 },
+];
+const inr = (v: string | null) =>
+  v === null
+    ? "—"
+    : new Intl.NumberFormat("en-IN", {
+        style: "currency",
+        currency: "INR",
+        maximumFractionDigits: 2,
+      }).format(Number(v));
+async function api<T>(
+  path: string,
+  body?: unknown,
+  method?: string,
+  key?: string,
+): Promise<T> {
+  const res = await fetch("/api/v1" + path, {
+    method: method || (body ? "POST" : "GET"),
+    credentials: "same-origin",
+    headers: {
+      ...(body ? { "Content-Type": "application/json" } : {}),
+      ...(key ? { "Idempotency-Key": key } : {}),
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (!res.ok) {
+    let message = "Service unavailable. Check the connection status.";
+    try {
+      const data = await res.json();
+      message =
+        typeof data.detail === "string"
+          ? data.detail
+          : "Check your entries and try again.";
+    } catch {}
+    throw new Error(message);
+  }
+  return res.json();
 }
-export default function Home(){
- const [page,setPage]=useState('Overview'),[user,setUser]=useState(false),[caps,setCaps]=useState<Caps|null>(null),[account,setAccount]=useState<Account>(empty),[watch,setWatch]=useState<{symbol:string}[]>([]),[kind,setKind]=useState<Kind>('paper'),[notice,setNotice]=useState(''),[busy,setBusy]=useState(false),[auth,setAuth]=useState(false),[register,setRegister]=useState(false),[symbol,setSymbol]=useState(''),[orderOpen,setOrderOpen]=useState(false),[pending,setPending]=useState<{symbol:string;side:string;quantity:number;price:string;confirmed:true}|null>(null),[orderKey,setOrderKey]=useState(''),[light,setLight]=useState(false);
- const activeKind=page==='Portfolio'?'manual':kind;
- useEffect(()=>{api<Caps>('/capabilities').then(setCaps).catch(()=>setNotice('Backend is not connected. Accounts and transactions are unavailable.'));api('/me').then(()=>setUser(true)).catch(()=>{});},[]);
- async function refresh(){if(!user)return;const [a,w]=await Promise.all([api<Account>('/accounts/'+activeKind),api<{symbol:string}[]>('/watchlist')]);setAccount(a);setWatch(w)}
- useEffect(()=>{if(user)refresh().catch(e=>setNotice(e.message));else {setAccount(empty);setWatch([])}},[user,activeKind]);
- async function action(fn:()=>Promise<void>){setBusy(true);setNotice('');try{await fn()}catch(e){setNotice(e instanceof Error?e.message:'Request failed')}finally{setBusy(false)}}
- async function authenticate(e:FormEvent<HTMLFormElement>){e.preventDefault();const data=new FormData(e.currentTarget);await action(async()=>{const r=await api<{message:string}>('/auth/'+(register?'register':'login'),Object.fromEntries(data));setNotice(r.message);if(!register){setUser(true);setAuth(false)}else setRegister(false)})}
- async function addWatch(e:FormEvent){e.preventDefault();if(!user){setAuth(true);return}await action(async()=>{await api('/watchlist',{symbol:symbol.toUpperCase()});setSymbol('');await refresh()})}
- function prepare(e:FormEvent<HTMLFormElement>){e.preventDefault();const f=new FormData(e.currentTarget);setPending({symbol:String(f.get('symbol')).toUpperCase(),side:String(f.get('side')),quantity:Number(f.get('quantity')),price:String(f.get('price')),confirmed:true});setOrderKey(crypto.randomUUID())}
- const needUser=(fn:()=>void)=>user?fn():setAuth(true);
- const heading=page==='Overview'?'Your investing workspace.':page==='Portfolio'?'Know what you own.':page==='Paper trading'?'Practice with purpose.':page==='Watchlist'?'Keep your ideas in view.':page==='Research lab'?'Evidence before conviction.':'Every connection, in the open.';
- return <div className={light?'app light':'app'}>
- <aside className="sidebar"><a className="brand" href="/" aria-label="Plutus home"><span className="brandmark">p<span>◆</span></span>plutus<span className="version">AI</span></a><div className="workspace"><div className="avatar">P</div><div>Personal workspace<small>Investment intelligence</small></div><ChevronRight size={14}/></div><div className="navlabel">WORKSPACE</div><nav>{nav.map(({label,icon:Icon})=><button key={label} className={page===label?'selected':''} onClick={()=>{setPage(label);setNotice('')}}><Icon size={18}/>{label}{label==='Research lab'&&<span className="beta">LAB</span>}</button>)}</nav><div className="sidebottom"><div className="secure"><ShieldCheck size={19}/><strong>Built on transparency</strong><p>Your money stays with your broker. This workspace holds no investment funds.</p></div><button className="quiet" onClick={()=>{setPage('Connections')}}><Settings2 size={17}/>Settings & connections</button><button className="quiet" onClick={()=>setLight(!light)}><Zap size={17}/>{light?'Switch to dark mode':'Switch to light mode'}</button></div><div className="profile"><div className="avatar">{user?'✓':'G'}</div><div>{user?'Signed-in workspace':'Guest workspace'}<small>{caps?.environment==='development'?'Local development':'Foundation release'}</small></div>{user?<button aria-label="Sign out" onClick={()=>action(async()=>{await api('/auth/logout',{});setUser(false)})}><LogOut size={16}/></button>:<button onClick={()=>setAuth(true)} aria-label="Sign in"><ArrowRight size={16}/></button>}</div></aside>
- <div className="main"><header><div className="breadcrumb">Workspace <ChevronRight size={13}/><span>{page}</span></div><div className="headerRight"><span className="status"><i/>Research workspace</span><button className="iconbutton" aria-label="Help and service status" onClick={()=>setPage('Connections')}><CircleHelp size={18}/></button>{!user&&<button className="smallbutton" onClick={()=>setAuth(true)}>Sign in <ArrowRight size={14}/></button>}</div></header>
- <main><div className="topline"><span className="eyebrow">PLUTUS AI / {page.toUpperCase()}</span><span className="release">FOUNDATION · 0.1</span></div><div className="pagehead"><div><h1>{heading}</h1><p>Clear decisions start with a clear picture.</p></div>{['Overview','Portfolio','Paper trading'].includes(page)&&<button className="primary" onClick={()=>needUser(()=>{setPending(null);setOrderOpen(true)})}><Plus size={16}/>{page==='Portfolio'?'Record transaction':'New paper scenario'}</button>}</div>
- {notice&&<div role="status" className="notice">{notice}<button aria-label="Dismiss notification" onClick={()=>setNotice('')}><X size={16}/></button></div>}
- {!user&&<div className="signinstrip"><ShieldCheck size={20}/><span><strong>A workspace that belongs to you.</strong> Sign in to save watchlists, record holdings, and try virtual trading.</span><button onClick={()=>setAuth(true)}>Get started <ArrowRight size={16}/></button></div>}
- {['Overview','Portfolio','Paper trading'].includes(page)&&<>
- <div className="viewtabs"><button className={activeKind==='paper'?'on':''} onClick={()=>{setPage('Paper trading');setKind('paper')}}>Paper account <span>SIMULATED</span></button><button className={activeKind==='manual'?'on':''} onClick={()=>setPage('Portfolio')}>Manual portfolio</button><div className="spacer"/><span className="muted">INR · {activeKind==='paper'?'Virtual assets only':'User-entered records'}</span></div>
- <div className="metrics"><Metric label={activeKind==='paper'?'Virtual cash':'Market value'} value={activeKind==='paper'?inr(account.cash):'—'} detail={activeKind==='paper'?(account.cash===null?'Initialize your virtual account':'Available for scenario trades'):'Requires a licensed price feed'} icon={<Wallet size={17}/>}/><Metric label="Open position cost" value={inr(account.cost_basis)} detail="Historical cost, including recorded fees"/><Metric label="Realized P&L" value={inr(account.realized)} detail={activeKind==='paper'?'Simulated · after 10 bps fees':'Based on your recorded transactions'}/><Metric label="Unrealized P&L" value="—" detail="Unavailable without verified market prices"/></div>
- <div className="dashboardgrid"><section className="panel holdings"><div className="panelhead"><div><h2>{activeKind==='paper'?'Virtual holdings':'Recorded holdings'}</h2><p>Every position, accounted for.</p></div><span className="badge">{account.positions.length} POSITIONS</span></div>{account.positions.length?<div className="tablewrap"><table><thead><tr><th>Security</th><th>Quantity</th><th>Avg. cost</th><th>Cost basis</th></tr></thead><tbody>{account.positions.map(h=><tr key={h.symbol}><td><b>{h.symbol.split(':')[1]}</b><small>{h.symbol.split(':')[0]} · {activeKind==='paper'?'Simulated':'Manual'}</small></td><td>{h.quantity}</td><td>{inr(h.average_cost)}</td><td>{inr(h.cost)}</td></tr>)}</tbody></table></div>:<div className="emptystate"><div className="emptygraphic"><span/><span/><span/><Wallet size={27}/></div><h3>A clean slate. A clear starting point.</h3><p>{activeKind==='paper'?'Start with ₹10,00,000 in virtual capital and explore your own price scenarios.':'Record purchases and sales to track your position costs and realized returns.'}</p><button className="secondary" disabled={busy} onClick={()=>needUser(()=>action(async()=>{await api('/accounts/initialize',{});await refresh();setNotice('Accounts initialized. Paper capital is simulated, not withdrawable.')}))}>Initialize workspace <ArrowRight size={15}/></button></div>}<div className="panelfoot"><ShieldCheck size={14}/>{activeKind==='paper'?'Scenario fills use your entered price. These are not live market executions.':'Manual records are not broker-confirmed holdings.'}</div></section>
- <section className="panel researchcard"><div className="researchlogo"><Sparkles size={20}/><span>PLUTUS INTELLIGENCE</span></div><h2>Better questions.<br/>Deeper understanding.</h2><p>A research assistant designed around evidence, sources, and uncertainty.</p><div className="researchprompt">What drives the risk in my portfolio?<ArrowUpRight size={18}/></div><div className="availability"><span className="amberdot"/>AI provider not connected</div><button className="textbutton" onClick={()=>setPage('Research lab')}>Explore the research roadmap <ArrowRight size={15}/></button></section></div>
- <div className="bottomgrid"><section className="panel"><div className="panelhead"><h2>Watchlist</h2><button className="textbutton" onClick={()=>setPage('Watchlist')}>Manage <ArrowUpRight size={15}/></button></div>{watch.length?watch.slice(0,5).map(w=><div className="watchrow" key={w.symbol}><div className="tickeravatar">{w.symbol.split(':')[1].slice(0,2)}</div><strong>{w.symbol}</strong><span className="spacer"/><span className="muted">Price unavailable</span></div>):<div className="smallempty"><Bookmark size={24}/><p>Your next idea starts here.</p><button className="textbutton" onClick={()=>setPage('Watchlist')}>Add a security <Plus size={14}/></button></div>}</section><section className="panel"><div className="panelhead"><h2>Recent activity</h2>{user&&<a className="textbutton" href={'/api/v1/accounts/'+activeKind+'/export'}><Download size={14}/>CSV</a>}</div>{account.orders.length?account.orders.slice(0,5).map(o=><div className="activityrow" key={o.id}><div className={'activityicon '+o.side.toLowerCase()}>{o.side==='BUY'?<ArrowDownLeft size={17}/>:<ArrowUpRight size={17}/>}</div><div><strong>{o.side} {o.symbol.split(':')[1]}</strong><small>{o.quantity} shares · {inr(o.price)} per share</small></div><span className="spacer"/><span className="badge">RECORDED</span></div>):<div className="smallempty"><Activity size={24}/><p>No recorded transactions yet.</p><small>Your activity will appear here when you begin.</small></div>}</section></div>
- </>}
- {page==='Watchlist'&&<section className="panel wide"><div className="panelhead"><div><h2>Your watchlist</h2><p>Save security identifiers. Pricing and exchange validation await a licensed provider.</p></div><Bookmark size={20}/></div><form className="addform" onSubmit={addWatch}><Search size={18}/><input aria-label="Security identifier" placeholder="NSE:TCS or BSE:500325" value={symbol} onChange={e=>setSymbol(e.target.value.toUpperCase())} required pattern="(NSE|BSE):[A-Z0-9&._\-]{1,24}"/><button className="primary" disabled={busy}><Plus size={16}/>Add to watchlist</button></form>{watch.length?watch.map(w=><div className="watchrow" key={w.symbol}><div className="tickeravatar">{w.symbol.split(':')[1].slice(0,2)}</div><strong>{w.symbol}</strong><span className="spacer"/><span className="muted">Saved identifier · Price unavailable</span><button className="iconbutton" aria-label={'Remove '+w.symbol} onClick={()=>action(async()=>{await api('/watchlist/'+encodeURIComponent(w.symbol),undefined,'DELETE');await refresh()})}><X size={16}/></button></div>):<div className="smallempty"><Bookmark size={30}/><h3>A little focus goes a long way.</h3><p>Add your first security above.</p></div>}</section>}
- {page==='Research lab'&&<div className="labgrid"><section className="panel labhero"><FlaskConical size={32}/><span className="eyebrow">RESEARCH, WITH RECEIPTS</span><h2>No black boxes.<br/>No made-up confidence.</h2><p>Forecasts belong next to their baselines, out-of-sample errors, and limitations. The offline evaluation pipeline is part of the source code; forecasts are not published in this release.</p><div className="availability"><span className="amberdot"/>Licensed historical data required</div></section><section className="panel checklist"><h2>What must be true before launch</h2>{['Licensed and time-aligned price history','Walk-forward evaluation against naive baselines','Disclosed error metrics and model versions','Server-side AI tools with verified sources','Provider credentials and operational testing'].map((s,i)=><div key={s}><span className="step">0{i+1}</span><p>{s}</p></div>)}<p className="muted">No stock recommendations or model-generated forecasts are available here yet.</p></section></div>}
- {page==='Connections'&&<><section className="panel wide"><div className="panelhead"><div><h2>Integration readiness</h2><p>Connected tools do not automatically provision credentials for the running application.</p></div><ShieldCheck size={23}/></div>{[
- ['Application API',caps?'Reachable · '+caps.environment:'Not connected','FastAPI service; health and capabilities exposed.'],
- ['Authentication & database',caps?.auth?'Available for this environment':'Configuration required','Production requires a dedicated Supabase project and database migrations.'],
- ['Market data','Not connected','Licensed quotes and history are required for current values and charting.'],
- ['OpenAI / Groq','Not connected','No generated research is served until a provider is configured and verified.'],
- ['Razorpay subscriptions','Disabled','Test credentials, webhooks and entitlement verification are required.'],
- ['Broker execution','Disabled','Broker sandbox verification and independent live authorization gates are required.'],
- ['Transactional email','Not configured','A verified sending domain and application credentials are required.']
- ].map(([name,status,desc])=><div className="connection" key={name}><div><h3>{name}</h3><p>{desc}</p></div><span className="badge">{status}</span></div>)}</section><div className="risknote"><ShieldCheck size={20}/><p><strong>Research workspace, not a brokerage.</strong> Plutus does not hold client investment funds. Manual entries are unverified records. Paper capital and returns are simulated. This foundation release is not ready for public financial use.</p></div></>}
- <footer><span>plutus<span className="greentext">.</span> <span className="muted">Clarity is an edge.</span></span><span>Research & simulation only <span className="dotdivider">·</span> No live execution</span></footer>
- </main></div>
- {auth&&<div className="modalback"><section className="modal" role="dialog" aria-modal="true" aria-label="Account access"><button className="close" aria-label="Close" onClick={()=>setAuth(false)}><X size={20}/></button><span className="brandmark">p◆</span><h2>{register?'Create your workspace':'Welcome to Plutus'}</h2><p>{caps?.environment==='development'?'Local development authentication. No real financial services.':'Secure access to your investment workspace.'}</p>{!caps?.auth?<div className="notice">Authentication is unavailable until the backend and dedicated database are configured.</div>:<form onSubmit={authenticate}><label>Email<input name="email" type="email" required autoComplete="email"/></label><label>Password<input name="password" type="password" minLength={12} maxLength={128} required autoComplete={register?'new-password':'current-password'}/><small>At least 12 characters</small></label><button className="primary full" disabled={busy}>{busy?'Please wait…':register?'Create account':'Sign in'}<ArrowRight size={17}/></button><button type="button" className="textbutton full" onClick={()=>setRegister(!register)}>{register?'Already have an account? Sign in':'New here? Create an account'}</button></form>}{notice&&<p role="status" className="formerror">{notice}</p>}</section></div>}
- {orderOpen&&<div className="modalback"><section className="modal" role="dialog" aria-modal="true" aria-label="Record transaction"><button className="close" aria-label="Close" onClick={()=>{setOrderOpen(false);setPending(null)}}><X size={20}/></button><span className="eyebrow">{activeKind==='paper'?'SIMULATED SCENARIO':'MANUAL RECORD'}</span><h2>{pending?'Review your transaction':'Record a transaction'}</h2><p>{activeKind==='paper'?'You choose the hypothetical price. Execution is immediate, at any time; no market session or liquidity is simulated.':'Record a historical transaction. No broker order will be sent.'}</p>{pending?<><div className="review"><b>{pending.side} {pending.quantity} × {pending.symbol}</b><p>Entered price: {inr(pending.price)}</p><p>Gross: {inr(String(Number(pending.price)*pending.quantity))}</p><small>{activeKind==='paper'?'Simulation fee: 10 basis points. The server calculates the exact total.':'Manual fees are not yet supported.'}</small></div><button className="primary full" disabled={busy} onClick={()=>action(async()=>{await api('/accounts/'+activeKind+'/orders',pending,'POST',orderKey);await refresh();setPending(null);setOrderOpen(false);setNotice('Transaction recorded successfully. No real securities order was submitted.')} )}>{busy?'Recording…':'Confirm '+(activeKind==='paper'?'virtual trade':'record')}<Check size={17}/></button><button className="textbutton full" onClick={()=>setPending(null)}>Back to edit</button></>:<form onSubmit={prepare}><label>Security identifier<input name="symbol" defaultValue="NSE:TCS" required pattern="(NSE|BSE):[A-Z0-9&._\-]{1,24}"/></label><div className="formrow"><label>Side<select name="side"><option>BUY</option><option>SELL</option></select></label><label>Shares<input name="quantity" type="number" min="1" max="1000000" step="1" defaultValue="1" required/></label></div><label>{activeKind==='paper'?'Hypothetical price (INR)':'Historical price (INR)'}<input name="price" type="number" min="0.01" max="10000000" step="0.01" required/></label><button className="primary full">Review transaction <ArrowRight size={16}/></button></form>}{notice&&<p role="alert" className="formerror">{notice}</p>}</section></div>}
- </div>
+export default function Home() {
+  const [page, setPage] = useState("Overview"),
+    [user, setUser] = useState(false),
+    [caps, setCaps] = useState<Caps | null>(null),
+    [account, setAccount] = useState<Account>(empty),
+    [watch, setWatch] = useState<{ symbol: string }[]>([]),
+    [kind, setKind] = useState<Kind>("paper"),
+    [notice, setNotice] = useState(""),
+    [busy, setBusy] = useState(false),
+    [auth, setAuth] = useState(false),
+    [register, setRegister] = useState(false),
+    [symbol, setSymbol] = useState(""),
+    [orderOpen, setOrderOpen] = useState(false),
+    [pending, setPending] = useState<{
+      symbol: string;
+      side: string;
+      quantity: number;
+      price: string;
+      confirmed: true;
+    } | null>(null),
+    [orderKey, setOrderKey] = useState(""),
+    [light, setLight] = useState(false);
+  const activeKind = page === "Portfolio" ? "manual" : kind;
+  useEffect(() => {
+    api<Caps>("/capabilities")
+      .then(setCaps)
+      .catch(() =>
+        setNotice(
+          "Backend is not connected. Accounts and transactions are unavailable.",
+        ),
+      );
+    api("/me")
+      .then(() => setUser(true))
+      .catch(() => {});
+  }, []);
+  async function refresh() {
+    if (!user) return;
+    const [a, w] = await Promise.all([
+      api<Account>("/accounts/" + activeKind),
+      api<{ symbol: string }[]>("/watchlist"),
+    ]);
+    setAccount(a);
+    setWatch(w);
+  }
+  useEffect(() => {
+    if (user) refresh().catch((e) => setNotice(e.message));
+    else {
+      setAccount(empty);
+      setWatch([]);
+    }
+  }, [user, activeKind]);
+  async function action(fn: () => Promise<void>) {
+    setBusy(true);
+    setNotice("");
+    try {
+      await fn();
+    } catch (e) {
+      setNotice(e instanceof Error ? e.message : "Request failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function authenticate(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const data = new FormData(e.currentTarget);
+    await action(async () => {
+      const r = await api<{ message: string }>(
+        "/auth/" + (register ? "register" : "login"),
+        Object.fromEntries(data),
+      );
+      setNotice(r.message);
+      if (!register) {
+        setUser(true);
+        setAuth(false);
+      } else setRegister(false);
+    });
+  }
+  async function addWatch(e: FormEvent) {
+    e.preventDefault();
+    if (!user) {
+      setAuth(true);
+      return;
+    }
+    await action(async () => {
+      await api("/watchlist", { symbol: symbol.toUpperCase() });
+      setSymbol("");
+      await refresh();
+    });
+  }
+  function prepare(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const f = new FormData(e.currentTarget);
+    setPending({
+      symbol: String(f.get("symbol")).toUpperCase(),
+      side: String(f.get("side")),
+      quantity: Number(f.get("quantity")),
+      price: String(f.get("price")),
+      confirmed: true,
+    });
+    setOrderKey(crypto.randomUUID());
+  }
+  const needUser = (fn: () => void) => (user ? fn() : setAuth(true));
+  const heading =
+    page === "Overview"
+      ? "Your investing workspace."
+      : page === "Portfolio"
+        ? "Know what you own."
+        : page === "Paper trading"
+          ? "Practice with purpose."
+          : page === "Watchlist"
+            ? "Keep your ideas in view."
+            : page === "Research lab"
+              ? "Evidence before conviction."
+              : "Every connection, in the open.";
+  return (
+    <div className={light ? "app light" : "app"}>
+      <aside className="sidebar">
+        <a className="brand" href="/" aria-label="Plutus home">
+          <span className="brandmark">
+            p<span>◆</span>
+          </span>
+          plutus<span className="version">AI</span>
+        </a>
+        <div className="workspace">
+          <div className="avatar">P</div>
+          <div>
+            Personal workspace<small>Investment intelligence</small>
+          </div>
+          <ChevronRight size={14} />
+        </div>
+        <div className="navlabel">WORKSPACE</div>
+        <nav>
+          {nav.map(({ label, icon: Icon }) => (
+            <button
+              key={label}
+              className={page === label ? "selected" : ""}
+              onClick={() => {
+                setPage(label);
+                setNotice("");
+              }}
+            >
+              <Icon size={18} />
+              {label}
+              {label === "Research lab" && <span className="beta">LAB</span>}
+            </button>
+          ))}
+        </nav>
+        <div className="sidebottom">
+          <div className="secure">
+            <ShieldCheck size={19} />
+            <strong>Built on transparency</strong>
+            <p>
+              Your money stays with your broker. This workspace holds no
+              investment funds.
+            </p>
+          </div>
+          <button
+            className="quiet"
+            onClick={() => {
+              setPage("Connections");
+            }}
+          >
+            <Settings2 size={17} />
+            Settings & connections
+          </button>
+          <button className="quiet" onClick={() => setLight(!light)}>
+            <Zap size={17} />
+            {light ? "Switch to dark mode" : "Switch to light mode"}
+          </button>
+        </div>
+        <div className="profile">
+          <div className="avatar">{user ? "✓" : "G"}</div>
+          <div>
+            {user ? "Signed-in workspace" : "Guest workspace"}
+            <small>
+              {caps?.environment === "development"
+                ? "Local development"
+                : "Foundation release"}
+            </small>
+          </div>
+          {user ? (
+            <button
+              aria-label="Sign out"
+              onClick={() =>
+                action(async () => {
+                  await api("/auth/logout", {});
+                  setUser(false);
+                })
+              }
+            >
+              <LogOut size={16} />
+            </button>
+          ) : (
+            <button onClick={() => setAuth(true)} aria-label="Sign in">
+              <ArrowRight size={16} />
+            </button>
+          )}
+        </div>
+      </aside>
+      <div className="main">
+        <header>
+          <div className="breadcrumb">
+            Workspace <ChevronRight size={13} />
+            <span>{page}</span>
+          </div>
+          <div className="headerRight">
+            <span className="status">
+              <i />
+              Research workspace
+            </span>
+            <button
+              className="iconbutton"
+              aria-label="Help and service status"
+              onClick={() => setPage("Connections")}
+            >
+              <CircleHelp size={18} />
+            </button>
+            {!user && (
+              <button className="smallbutton" onClick={() => setAuth(true)}>
+                Sign in <ArrowRight size={14} />
+              </button>
+            )}
+          </div>
+        </header>
+        <main>
+          <div className="topline">
+            <span className="eyebrow">PLUTUS AI / {page.toUpperCase()}</span>
+            <span className="release">FOUNDATION · 0.1</span>
+          </div>
+          <div className="pagehead">
+            <div>
+              <h1>{heading}</h1>
+              <p>Clear decisions start with a clear picture.</p>
+            </div>
+            {["Overview", "Portfolio", "Paper trading"].includes(page) && (
+              <button
+                className="primary"
+                onClick={() =>
+                  needUser(() => {
+                    setPending(null);
+                    setOrderOpen(true);
+                  })
+                }
+              >
+                <Plus size={16} />
+                {page === "Portfolio"
+                  ? "Record transaction"
+                  : "New paper scenario"}
+              </button>
+            )}
+          </div>
+          {notice && (
+            <div role="status" className="notice">
+              {notice}
+              <button
+                aria-label="Dismiss notification"
+                onClick={() => setNotice("")}
+              >
+                <X size={16} />
+              </button>
+            </div>
+          )}
+          {!user && (
+            <div className="signinstrip">
+              <ShieldCheck size={20} />
+              <span>
+                <strong>A workspace that belongs to you.</strong> Sign in to
+                save watchlists, record holdings, and try virtual trading.
+              </span>
+              <button onClick={() => setAuth(true)}>
+                Get started <ArrowRight size={16} />
+              </button>
+            </div>
+          )}
+          {["Overview", "Portfolio", "Paper trading"].includes(page) && (
+            <>
+              <div className="viewtabs">
+                <button
+                  className={activeKind === "paper" ? "on" : ""}
+                  onClick={() => {
+                    setPage("Paper trading");
+                    setKind("paper");
+                  }}
+                >
+                  Paper account <span>SIMULATED</span>
+                </button>
+                <button
+                  className={activeKind === "manual" ? "on" : ""}
+                  onClick={() => setPage("Portfolio")}
+                >
+                  Manual portfolio
+                </button>
+                <div className="spacer" />
+                <span className="muted">
+                  INR ·{" "}
+                  {activeKind === "paper"
+                    ? "Virtual assets only"
+                    : "User-entered records"}
+                </span>
+              </div>
+              <div className="metrics">
+                <Metric
+                  label={
+                    activeKind === "paper" ? "Virtual cash" : "Market value"
+                  }
+                  value={activeKind === "paper" ? inr(account.cash) : "—"}
+                  detail={
+                    activeKind === "paper"
+                      ? account.cash === null
+                        ? "Initialize your virtual account"
+                        : "Available for scenario trades"
+                      : "Requires a licensed price feed"
+                  }
+                  icon={<Wallet size={17} />}
+                />
+                <Metric
+                  label="Open position cost"
+                  value={inr(account.cost_basis)}
+                  detail="Historical cost, including recorded fees"
+                />
+                <Metric
+                  label="Realized P&L"
+                  value={inr(account.realized)}
+                  detail={
+                    activeKind === "paper"
+                      ? "Simulated · after 10 bps fees"
+                      : "Based on your recorded transactions"
+                  }
+                />
+                <Metric
+                  label="Unrealized P&L"
+                  value="—"
+                  detail="Unavailable without verified market prices"
+                />
+              </div>
+              <div className="dashboardgrid">
+                <section className="panel holdings">
+                  <div className="panelhead">
+                    <div>
+                      <h2>
+                        {activeKind === "paper"
+                          ? "Virtual holdings"
+                          : "Recorded holdings"}
+                      </h2>
+                      <p>Every position, accounted for.</p>
+                    </div>
+                    <span className="badge">
+                      {account.positions.length} POSITIONS
+                    </span>
+                  </div>
+                  {account.positions.length ? (
+                    <div className="tablewrap">
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>Security</th>
+                            <th>Quantity</th>
+                            <th>Avg. cost</th>
+                            <th>Cost basis</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {account.positions.map((h) => (
+                            <tr key={h.symbol}>
+                              <td>
+                                <b>{h.symbol.split(":")[1]}</b>
+                                <small>
+                                  {h.symbol.split(":")[0]} ·{" "}
+                                  {activeKind === "paper"
+                                    ? "Simulated"
+                                    : "Manual"}
+                                </small>
+                              </td>
+                              <td>{h.quantity}</td>
+                              <td>{inr(h.average_cost)}</td>
+                              <td>{inr(h.cost)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="emptystate">
+                      <div className="emptygraphic">
+                        <span />
+                        <span />
+                        <span />
+                        <Wallet size={27} />
+                      </div>
+                      <h3>A clean slate. A clear starting point.</h3>
+                      <p>
+                        {activeKind === "paper"
+                          ? "Start with ₹10,00,000 in virtual capital and explore your own price scenarios."
+                          : "Record purchases and sales to track your position costs and realized returns."}
+                      </p>
+                      <button
+                        className="secondary"
+                        disabled={busy}
+                        onClick={() =>
+                          needUser(() =>
+                            action(async () => {
+                              await api("/accounts/initialize", {});
+                              await refresh();
+                              setNotice(
+                                "Accounts initialized. Paper capital is simulated, not withdrawable.",
+                              );
+                            }),
+                          )
+                        }
+                      >
+                        Initialize workspace <ArrowRight size={15} />
+                      </button>
+                    </div>
+                  )}
+                  <div className="panelfoot">
+                    <ShieldCheck size={14} />
+                    {activeKind === "paper"
+                      ? "Scenario fills use your entered price. These are not live market executions."
+                      : "Manual records are not broker-confirmed holdings."}
+                  </div>
+                </section>
+                <section className="panel researchcard">
+                  <div className="researchlogo">
+                    <Sparkles size={20} />
+                    <span>PLUTUS INTELLIGENCE</span>
+                  </div>
+                  <h2>
+                    Better questions.
+                    <br />
+                    Deeper understanding.
+                  </h2>
+                  <p>
+                    A research assistant designed around evidence, sources, and
+                    uncertainty.
+                  </p>
+                  <div className="researchprompt">
+                    What drives the risk in my portfolio?
+                    <ArrowUpRight size={18} />
+                  </div>
+                  <div className="availability">
+                    <span className="amberdot" />
+                    AI provider not connected
+                  </div>
+                  <button
+                    className="textbutton"
+                    onClick={() => setPage("Research lab")}
+                  >
+                    Explore the research roadmap <ArrowRight size={15} />
+                  </button>
+                </section>
+              </div>
+              <div className="bottomgrid">
+                <section className="panel">
+                  <div className="panelhead">
+                    <h2>Watchlist</h2>
+                    <button
+                      className="textbutton"
+                      onClick={() => setPage("Watchlist")}
+                    >
+                      Manage <ArrowUpRight size={15} />
+                    </button>
+                  </div>
+                  {watch.length ? (
+                    watch.slice(0, 5).map((w) => (
+                      <div className="watchrow" key={w.symbol}>
+                        <div className="tickeravatar">
+                          {w.symbol.split(":")[1].slice(0, 2)}
+                        </div>
+                        <strong>{w.symbol}</strong>
+                        <span className="spacer" />
+                        <span className="muted">Price unavailable</span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="smallempty">
+                      <Bookmark size={24} />
+                      <p>Your next idea starts here.</p>
+                      <button
+                        className="textbutton"
+                        onClick={() => setPage("Watchlist")}
+                      >
+                        Add a security <Plus size={14} />
+                      </button>
+                    </div>
+                  )}
+                </section>
+                <section className="panel">
+                  <div className="panelhead">
+                    <h2>Recent activity</h2>
+                    {user && (
+                      <a
+                        className="textbutton"
+                        href={"/api/v1/accounts/" + activeKind + "/export"}
+                      >
+                        <Download size={14} />
+                        CSV
+                      </a>
+                    )}
+                  </div>
+                  {account.orders.length ? (
+                    account.orders.slice(0, 5).map((o) => (
+                      <div className="activityrow" key={o.id}>
+                        <div className={"activityicon " + o.side.toLowerCase()}>
+                          {o.side === "BUY" ? (
+                            <ArrowDownLeft size={17} />
+                          ) : (
+                            <ArrowUpRight size={17} />
+                          )}
+                        </div>
+                        <div>
+                          <strong>
+                            {o.side} {o.symbol.split(":")[1]}
+                          </strong>
+                          <small>
+                            {o.quantity} shares · {inr(o.price)} per share
+                          </small>
+                        </div>
+                        <span className="spacer" />
+                        <span className="badge">RECORDED</span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="smallempty">
+                      <Activity size={24} />
+                      <p>No recorded transactions yet.</p>
+                      <small>
+                        Your activity will appear here when you begin.
+                      </small>
+                    </div>
+                  )}
+                </section>
+              </div>
+            </>
+          )}
+          {page === "Watchlist" && (
+            <section className="panel wide">
+              <div className="panelhead">
+                <div>
+                  <h2>Your watchlist</h2>
+                  <p>
+                    Save security identifiers. Pricing and exchange validation
+                    await a licensed provider.
+                  </p>
+                </div>
+                <Bookmark size={20} />
+              </div>
+              <form className="addform" onSubmit={addWatch}>
+                <Search size={18} />
+                <input
+                  aria-label="Security identifier"
+                  placeholder="NSE:TCS or BSE:500325"
+                  value={symbol}
+                  onChange={(e) => setSymbol(e.target.value.toUpperCase())}
+                  required
+                  pattern="(NSE|BSE):[A-Z0-9&._\-]{1,24}"
+                />
+                <button className="primary" disabled={busy}>
+                  <Plus size={16} />
+                  Add to watchlist
+                </button>
+              </form>
+              {watch.length ? (
+                watch.map((w) => (
+                  <div className="watchrow" key={w.symbol}>
+                    <div className="tickeravatar">
+                      {w.symbol.split(":")[1].slice(0, 2)}
+                    </div>
+                    <strong>{w.symbol}</strong>
+                    <span className="spacer" />
+                    <span className="muted">
+                      Saved identifier · Price unavailable
+                    </span>
+                    <button
+                      className="iconbutton"
+                      aria-label={"Remove " + w.symbol}
+                      onClick={() =>
+                        action(async () => {
+                          await api(
+                            "/watchlist/" + encodeURIComponent(w.symbol),
+                            undefined,
+                            "DELETE",
+                          );
+                          await refresh();
+                        })
+                      }
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                ))
+              ) : (
+                <div className="smallempty">
+                  <Bookmark size={30} />
+                  <h3>A little focus goes a long way.</h3>
+                  <p>Add your first security above.</p>
+                </div>
+              )}
+            </section>
+          )}
+          {page === "Research lab" && (
+            <div className="labgrid">
+              <section className="panel labhero">
+                <FlaskConical size={32} />
+                <span className="eyebrow">RESEARCH, WITH RECEIPTS</span>
+                <h2>
+                  No black boxes.
+                  <br />
+                  No made-up confidence.
+                </h2>
+                <p>
+                  Forecasts belong next to their baselines, out-of-sample
+                  errors, and limitations. The offline evaluation pipeline is
+                  part of the source code; forecasts are not published in this
+                  release.
+                </p>
+                <div className="availability">
+                  <span className="amberdot" />
+                  Licensed historical data required
+                </div>
+              </section>
+              <section className="panel checklist">
+                <h2>What must be true before launch</h2>
+                {[
+                  "Licensed and time-aligned price history",
+                  "Walk-forward evaluation against naive baselines",
+                  "Disclosed error metrics and model versions",
+                  "Server-side AI tools with verified sources",
+                  "Provider credentials and operational testing",
+                ].map((s, i) => (
+                  <div key={s}>
+                    <span className="step">0{i + 1}</span>
+                    <p>{s}</p>
+                  </div>
+                ))}
+                <p className="muted">
+                  No stock recommendations or model-generated forecasts are
+                  available here yet.
+                </p>
+              </section>
+            </div>
+          )}
+          {page === "Connections" && (
+            <>
+              <section className="panel wide">
+                <div className="panelhead">
+                  <div>
+                    <h2>Integration readiness</h2>
+                    <p>
+                      Connected tools do not automatically provision credentials
+                      for the running application.
+                    </p>
+                  </div>
+                  <ShieldCheck size={23} />
+                </div>
+                {[
+                  [
+                    "Application API",
+                    caps ? "Reachable · " + caps.environment : "Not connected",
+                    "FastAPI service; health and capabilities exposed.",
+                  ],
+                  [
+                    "Authentication & database",
+                    caps?.auth
+                      ? "Available for this environment"
+                      : "Configuration required",
+                    "Production requires a dedicated Supabase project and database migrations.",
+                  ],
+                  [
+                    "Market data",
+                    "Not connected",
+                    "Licensed quotes and history are required for current values and charting.",
+                  ],
+                  [
+                    "OpenAI / Groq",
+                    "Not connected",
+                    "No generated research is served until a provider is configured and verified.",
+                  ],
+                  [
+                    "Razorpay subscriptions",
+                    "Disabled",
+                    "Test credentials, webhooks and entitlement verification are required.",
+                  ],
+                  [
+                    "Broker execution",
+                    "Disabled",
+                    "Broker sandbox verification and independent live authorization gates are required.",
+                  ],
+                  [
+                    "Transactional email",
+                    "Not configured",
+                    "A verified sending domain and application credentials are required.",
+                  ],
+                ].map(([name, status, desc]) => (
+                  <div className="connection" key={name}>
+                    <div>
+                      <h3>{name}</h3>
+                      <p>{desc}</p>
+                    </div>
+                    <span className="badge">{status}</span>
+                  </div>
+                ))}
+              </section>
+              <div className="risknote">
+                <ShieldCheck size={20} />
+                <p>
+                  <strong>Research workspace, not a brokerage.</strong> Plutus
+                  does not hold client investment funds. Manual entries are
+                  unverified records. Paper capital and returns are simulated.
+                  This foundation release is not ready for public financial use.
+                </p>
+              </div>
+            </>
+          )}
+          <footer>
+            <span>
+              plutus<span className="greentext">.</span>{" "}
+              <span className="muted">Clarity is an edge.</span>
+            </span>
+            <span>
+              Research & simulation only <span className="dotdivider">·</span>{" "}
+              No live execution
+            </span>
+          </footer>
+        </main>
+      </div>
+      {auth && (
+        <div className="modalback">
+          <section
+            className="modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Account access"
+          >
+            <button
+              className="close"
+              aria-label="Close"
+              onClick={() => setAuth(false)}
+            >
+              <X size={20} />
+            </button>
+            <span className="brandmark">p◆</span>
+            <h2>{register ? "Create your workspace" : "Welcome to Plutus"}</h2>
+            <p>
+              {caps?.environment === "development"
+                ? "Local development authentication. No real financial services."
+                : "Secure access to your investment workspace."}
+            </p>
+            {!caps?.auth ? (
+              <div className="notice">
+                Authentication is unavailable until the backend and dedicated
+                database are configured.
+              </div>
+            ) : (
+              <form onSubmit={authenticate}>
+                <label>
+                  Email
+                  <input
+                    name="email"
+                    type="email"
+                    required
+                    autoComplete="email"
+                  />
+                </label>
+                <label>
+                  Password
+                  <input
+                    name="password"
+                    type="password"
+                    minLength={12}
+                    maxLength={128}
+                    required
+                    autoComplete={
+                      register ? "new-password" : "current-password"
+                    }
+                  />
+                  <small>At least 12 characters</small>
+                </label>
+                <button className="primary full" disabled={busy}>
+                  {busy
+                    ? "Please wait…"
+                    : register
+                      ? "Create account"
+                      : "Sign in"}
+                  <ArrowRight size={17} />
+                </button>
+                <button
+                  type="button"
+                  className="textbutton full"
+                  onClick={() => setRegister(!register)}
+                >
+                  {register
+                    ? "Already have an account? Sign in"
+                    : "New here? Create an account"}
+                </button>
+              </form>
+            )}
+            {notice && (
+              <p role="status" className="formerror">
+                {notice}
+              </p>
+            )}
+          </section>
+        </div>
+      )}
+      {orderOpen && (
+        <div className="modalback">
+          <section
+            className="modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Record transaction"
+          >
+            <button
+              className="close"
+              aria-label="Close"
+              onClick={() => {
+                setOrderOpen(false);
+                setPending(null);
+              }}
+            >
+              <X size={20} />
+            </button>
+            <span className="eyebrow">
+              {activeKind === "paper" ? "SIMULATED SCENARIO" : "MANUAL RECORD"}
+            </span>
+            <h2>
+              {pending ? "Review your transaction" : "Record a transaction"}
+            </h2>
+            <p>
+              {activeKind === "paper"
+                ? "You choose the hypothetical price. Execution is immediate, at any time; no market session or liquidity is simulated."
+                : "Record a historical transaction. No broker order will be sent."}
+            </p>
+            {pending ? (
+              <>
+                <div className="review">
+                  <b>
+                    {pending.side} {pending.quantity} × {pending.symbol}
+                  </b>
+                  <p>Entered price: {inr(pending.price)}</p>
+                  <p>
+                    Gross:{" "}
+                    {inr(String(Number(pending.price) * pending.quantity))}
+                  </p>
+                  <small>
+                    {activeKind === "paper"
+                      ? "Simulation fee: 10 basis points. The server calculates the exact total."
+                      : "Manual fees are not yet supported."}
+                  </small>
+                </div>
+                <button
+                  className="primary full"
+                  disabled={busy}
+                  onClick={() =>
+                    action(async () => {
+                      await api(
+                        "/accounts/" + activeKind + "/orders",
+                        pending,
+                        "POST",
+                        orderKey,
+                      );
+                      await refresh();
+                      setPending(null);
+                      setOrderOpen(false);
+                      setNotice(
+                        "Transaction recorded successfully. No real securities order was submitted.",
+                      );
+                    })
+                  }
+                >
+                  {busy
+                    ? "Recording…"
+                    : "Confirm " +
+                      (activeKind === "paper" ? "virtual trade" : "record")}
+                  <Check size={17} />
+                </button>
+                <button
+                  className="textbutton full"
+                  onClick={() => setPending(null)}
+                >
+                  Back to edit
+                </button>
+              </>
+            ) : (
+              <form onSubmit={prepare}>
+                <label>
+                  Security identifier
+                  <input
+                    name="symbol"
+                    defaultValue="NSE:TCS"
+                    required
+                    pattern="(NSE|BSE):[A-Z0-9&._\-]{1,24}"
+                  />
+                </label>
+                <div className="formrow">
+                  <label>
+                    Side
+                    <select name="side">
+                      <option>BUY</option>
+                      <option>SELL</option>
+                    </select>
+                  </label>
+                  <label>
+                    Shares
+                    <input
+                      name="quantity"
+                      type="number"
+                      min="1"
+                      max="1000000"
+                      step="1"
+                      defaultValue="1"
+                      required
+                    />
+                  </label>
+                </div>
+                <label>
+                  {activeKind === "paper"
+                    ? "Hypothetical price (INR)"
+                    : "Historical price (INR)"}
+                  <input
+                    name="price"
+                    type="number"
+                    min="0.01"
+                    max="10000000"
+                    step="0.01"
+                    required
+                  />
+                </label>
+                <button className="primary full">
+                  Review transaction <ArrowRight size={16} />
+                </button>
+              </form>
+            )}
+            {notice && (
+              <p role="alert" className="formerror">
+                {notice}
+              </p>
+            )}
+          </section>
+        </div>
+      )}
+    </div>
+  );
 }
-function Metric({label,value,detail,icon}:{label:string;value:string;detail:string;icon?:React.ReactNode}){return <section className="metric"><div>{label}{icon||<ArrowUpRight size={16}/>}</div><strong>{value}</strong><small>{detail}</small></section>}
+function Metric({
+  label,
+  value,
+  detail,
+  icon,
+}: {
+  label: string;
+  value: string;
+  detail: string;
+  icon?: React.ReactNode;
+}) {
+  return (
+    <section className="metric">
+      <div>
+        {label}
+        {icon || <ArrowUpRight size={16} />}
+      </div>
+      <strong>{value}</strong>
+      <small>{detail}</small>
+    </section>
+  );
+}
