@@ -23,3 +23,17 @@ Deployment and remote CI evidence will be appended after actual results are avai
 - Frontend preview `dpl_GPxMPepCBUAMh1GLbfhKoKPJhEBg` reached READY. A further deployment applies the configured API proxy origin.
 - Initial Alembic migration successfully applied to a temporary SQLite database. This is not proof of a PostgreSQL migration.
 - Source publication used the connected GitHub API because shell Git push lacked a credential. No credentials were copied into files.
+
+## Final preview verification
+
+Application commit: `6518a8d7e4fe9a1bc8d4561cfc8337270efd380c`.
+
+- Both CI runs on this commit succeeded, including https://github.com/Doublezippin44/Plutus-AI2/actions/runs/43758236953.
+- Frontend: https://plutus-ai-v2-git-feat-plutus-v2-foundation-pirate-apollo.vercel.app/
+- Backend: https://plutus-ai-v2-api-git-feat-plutus-v2-foundation-pirate-apollo.vercel.app
+- Frontend `/api/v1/health` proxy returned HTTP 200 with `database_ready:false` and `public_launch_ready:false`.
+- Backend `/api/v1/capabilities` returned HTTP 200 with auth, market data, AI, forecasts, payments and live trading all false.
+- Backend `/api/v1/accounts/paper` returned HTTP 503, `Database is not configured`, as intended.
+- Hosted browser inspection verified dashboard rendering, Watchlist navigation and Connections navigation. After the configured deployment loaded, Connections displayed `Application API: Reachable · production` and `Authentication & database: Configuration required`.
+- Browser registration/trading end-to-end remains blocked by database provisioning. Mobile browser interaction has not been tested. No public-ready claim is made.
+- Vercel projects: `plutus-ai-v2` and `plutus-ai-v2-api`, in team `Pirate Apollo`; this is preview infrastructure. FastAPI is temporarily hosted on Vercel, not Render. Long-running jobs/Redis/monitoring are not provisioned.
